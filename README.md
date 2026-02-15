@@ -23,7 +23,7 @@ Séquence 2 : Création du votre environnement de travail
 Objectif : Créer votre environnement de travail  
 Difficulté : Simple (~10 minutes)
 ---------------------------------------------------
-Vous allez dans cette séquence mettre en place un cluster Kubernetes K3d contenant un master et 2 workers, installer les logiciels Packer et Ansible. Depuis le terminal de votre Codespace copier/coller les codes ci-dessous étape par étape :  
+Vous allez dans cette séquence installer un serveur Flask dans votre Codespace. Depuis le terminal de votre Codespace copier/coller les codes ci-dessous étape par étape :  
 
 **Création du cluster K3d**  
 ```
