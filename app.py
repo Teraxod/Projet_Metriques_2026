@@ -9,9 +9,9 @@ def hello_world():
 
 # Déposez votre code à partir d'ici :
 
-@app.route("/contact")
-def MaPremiereAPI():
-    return "<h2>Ma page de contact</h2>"  
+# @app.route("/contact")
+# def MaPremiereAPI():
+#     return "<h2>Ma page de contact</h2>"  
 
 @app.get("/paris")
 def api_paris():
