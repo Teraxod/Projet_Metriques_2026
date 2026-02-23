@@ -5,32 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Températures Paris — Google LineChart</title>
 
+  <!-- Chargement de la bibliothèque Google Charts -->
   <script src="https://www.gstatic.com/charts/loader.js"></script>
 
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 24px; }
-    #chart { width: 100%; height: 520px; }
-    #status { margin-top: 12px; white-space: pre-wrap; }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 24px;
+    }
+    #chart {
+      width: 100%;
+      height: 520px;
+    }
+    #status {
+      margin-top: 12px;
+      white-space: pre-wrap;
+      color: #666;
+    }
+    h1 {
+      color: #333;
+    }
   </style>
 </head>
 
 <body>
-  <h1>Températures horaires — Paris</h1>
+  <h1>Températures horaires — Paris (7 prochains jours)</h1>
   <div id="chart"></div>
-  <div id="status"></div>
+  <div id="status">Chargement des données...</div>
 
   <script>
+    // Charger Google Charts
     google.charts.load('current', { packages: ['corechart'] });
     google.charts.setOnLoadCallback(init);
 
     let cachedRows = null;
 
+    // Initialisation
     async function init() {
       try {
         const rows = await fetchParisData();
         cachedRows = rows;
         drawChart(rows);
 
+        // Redessiner le graphique si la fenêtre est redimensionnée
         window.addEventListener('resize', () => {
           if (cachedRows) drawChart(cachedRows);
         });
@@ -40,63 +57,72 @@
       }
     }
 
+    // Récupérer les données depuis votre API /paris
     async function fetchParisData() {
       const res = await fetch('/paris', { headers: { 'Accept': 'application/json' } });
 
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status} sur /paris`);
+        throw new Error(`Erreur HTTP ${res.status} sur /paris`);
       }
 
       const json = await res.json();
 
-      // json attendu: [{ datetime: "2026-02-15T00:00", temperature_c: 0.5 }, ...]
-      // Convertir en rows: [Date, Number]
+      // Convertir les données JSON en format compatible avec Google Charts
       const rows = json.map(p => {
-        const dt = toDate(p.datetime);
+        const dt = new Date(p.datetime); // Convertir la chaîne ISO en objet Date
         const temp = Number(p.temperature_c);
         return [dt, temp];
       });
 
-      // Optionnel: trier par date au cas où
+      // Trier par date (au cas où)
       rows.sort((a, b) => a[0] - b[0]);
 
       return rows;
     }
 
-    function toDate(isoLike) {
-      // "2026-02-15T00:00"
-      // On parse en Date locale. Si tu veux forcer UTC, dis-moi.
-      const [datePart, timePart] = isoLike.split('T');
-      const [y, m, d] = datePart.split('-').map(Number);
-      const [hh, mm] = timePart.split(':').map(Number);
-      return new Date(y, m - 1, d, hh, mm, 0);
-    }
-
+    // Dessiner le graphique
     function drawChart(rows) {
+      // Créer un DataTable et ajouter les colonnes
       const data = new google.visualization.DataTable();
       data.addColumn('datetime', 'Date/Heure');
       data.addColumn('number', 'Température (°C)');
       data.addRows(rows);
 
+      // Options du graphique
       const options = {
-        title: 'Température à Paris (horaire)',
+        title: 'Températures horaires à Paris (7 jours)',
         legend: { position: 'bottom' },
         hAxis: {
           title: 'Date/Heure',
-          format: 'dd/MM HH:mm'
+          format: 'dd/MM HH:mm',  // Format d'affichage des dates
+          gridlines: { count: 12 } // Nombre de lignes de grille sur l'axe X
         },
         vAxis: {
-          title: '°C'
+          title: 'Température (°C)',
+          gridlines: { color: '#e0e0e0' } // Couleur des lignes de grille
         },
-        explorer: { actions: ['dragToZoom', 'rightClickToReset'] }
+        colors: ['#4285F4'], // Couleur de la ligne (bleu Google)
+        lineWidth: 2,        // Épaisseur de la ligne
+        pointSize: 4,        // Taille des points
+        explorer: {
+          actions: ['dragToZoom', 'rightClickToReset'], // Zoom et réinitialisation
+          maxZoomIn: 0.1      // Zoom maximal
+        },
+        chartArea: {
+          width: '85%',     // Largeur de la zone du graphique
+          height: '75%'     // Hauteur de la zone du graphique
+        }
       };
 
+      // Créer et dessiner le graphique
       const chart = new google.visualization.LineChart(document.getElementById('chart'));
       chart.draw(data, options);
 
-      showStatus(`OK — ${rows.length} points chargés depuis /paris`);
+      // Afficher un message de statut
+      showStatus(`✅ Succès — ${rows.length} points de données chargés depuis /paris`);
     }
 
+    // Afficher un message de statut
     function showStatus(msg) {
       document.getElementById('status').textContent = msg;
     }
