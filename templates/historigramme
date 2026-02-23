@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Températures Paris — Google LineChart</title>
+
+  <!-- Chargement de la bibliothèque Google Charts -->
+  <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      margin: 24px;
+    }
+    #chart {
+      width: 100%;
+      height: 520px;
+    }
+    #status {
+      margin-top: 12px;
+      white-space: pre-wrap;
+      color: #666;
+    }
+    h1 {
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Températures horaires — Paris (7 prochains jours)</h1>
+  <div id="chart"></div>
+  <div id="status">Chargement des données...</div>
+
+  <script>
+    // Charger Google Charts
+    google.charts.load('current', { packages: ['corechart'] });
+    google.charts.setOnLoadCallback(init);
+
+    let cachedRows = null;
+
+    // Initialisation
+    async function init() {
+      try {
+        const rows = await fetchParisData();
+        cachedRows = rows;
+        drawChart(rows);
+
+        // Redessiner le graphique si la fenêtre est redimensionnée
+        window.addEventListener('resize', () => {
+          if (cachedRows) drawChart(cachedRows);
+        });
+      } catch (err) {
+        showStatus("Erreur: " + (err?.message || err));
+        console.error(err);
+      }
+    }
+
+    // Récupérer les données depuis votre API /paris
+    async function fetchParisData() {
+      const res = await fetch('/paris', { headers: { 'Accept': 'application/json' } });
+
+      if (!res.ok) {
+        throw new Error(`Erreur HTTP ${res.status} sur /paris`);
+      }
+
+      const json = await res.json();
+
+      // Convertir les données JSON en format compatible avec Google Charts
+      const rows = json.map(p => {
+        const dt = new Date(p.datetime); // Convertir la chaîne ISO en objet Date
+        const temp = Number(p.temperature_c);
+        return [dt, temp];
+      });
+
+      // Trier par date (au cas où)
+      rows.sort((a, b) => a[0] - b[0]);
+
+      return rows;
+    }
+
+    // Dessiner le graphique
+    function drawChart(rows) {
+      // Créer un DataTable et ajouter les colonnes
+      const data = new google.visualization.DataTable();
+      data.addColumn('datetime', 'Date/Heure');
+      data.addColumn('number', 'Température (°C)');
+      data.addRows(rows);
+
+      // Options du graphique
+      const options = {
+        title: 'Températures horaires à Paris (7 jours)',
+        legend: { position: 'bottom' },
+        hAxis: {
+          title: 'Date/Heure',
+          format: 'dd/MM HH:mm',  // Format d'affichage des dates
+          gridlines: { count: 12 } // Nombre de lignes de grille sur l'axe X
+        },
+        vAxis: {
+          title: 'Température (°C)',
+          gridlines: { color: '#e0e0e0' } // Couleur des lignes de grille
+        },
+        colors: ['#4285F4'], // Couleur de la ligne (bleu Google)
+        lineWidth: 2,        // Épaisseur de la ligne
+        pointSize: 4,        // Taille des points
+        explorer: {
+          actions: ['dragToZoom', 'rightClickToReset'], // Zoom et réinitialisation
+          maxZoomIn: 0.1      // Zoom maximal
+        },
+        chartArea: {
+          width: '85%',     // Largeur de la zone du graphique
+          height: '75%'     // Hauteur de la zone du graphique
+        }
+      };
+
+      // Créer et dessiner le graphique
+      const chart = new google.visualization.LineChart(document.getElementById('chart'));
+      chart.draw(data, options);
+
+      // Afficher un message de statut
+      showStatus(`✅ Succès — ${rows.length} points de données chargés depuis /paris`);
+    }
+
+    // Afficher un message de statut
+    function showStatus(msg) {
+      document.getElementById('status').textContent = msg;
+    }
+  </script>
+</body>
+</html>
