@@ -38,8 +38,8 @@ def rapport():  # Nom de fonction unique
 def histogramme():  # Nom de fonction unique
     return render_template("historigramme.html")  # Correction du nom du template
 
-@app.get("/atelier")
-def api_atelier():
+@app.get("/atelier/data")  # Route pour les données
+def api_atelier_data():
     url = "https://api.open-meteo.com/v1/forecast?latitude=43.2965&longitude=5.3698&hourly=windspeed_10m"
     response = requests.get(url)
     data = response.json()
@@ -55,7 +55,7 @@ def api_atelier():
 
     return jsonify(result)
 
-@app.route("/atelier")
+@app.route("/atelier")  # Route pour le template
 def atelier():
     return render_template("atelier.html")
 
