@@ -3,20 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Vitesse du vent — Marseille</title>
+  <title>Répartition des vitesses de vent — Marseille</title>
 
   <!-- Chargement de la bibliothèque Google Charts -->
   <script src="https://www.gstatic.com/charts/loader.js"></script>
 
   <style>
-    body { font-family: Arial, sans-serif; margin: 24px; }
-    #chart { width: 100%; height: 500px; }
-    #status { margin-top: 12px; color: #666; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 24px;
+      text-align: center;
+    }
+    #chart {
+      width: 100%;
+      max-width: 800px;
+      height: 500px;
+      margin: 0 auto;
+    }
+    #status {
+      margin-top: 12px;
+      color: #666;
+      font-style: italic;
+    }
+    h1 {
+      color: #333;
+    }
   </style>
 </head>
 
 <body>
-  <h1>Vitesse du vent à Marseille (horaire)</h1>
+  <h1>Répartition des vitesses de vent à Marseille</h1>
   <div id="chart"></div>
   <div id="status">Chargement des données...</div>
 
@@ -24,16 +40,12 @@
     google.charts.load('current', { packages: ['corechart'] });
     google.charts.setOnLoadCallback(init);
 
-    let cachedData = null;
-
     async function init() {
       try {
-        const data = await fetchAtelierData();
-        cachedData = data;
-        drawChart(data);
-        showStatus(`OK — ${data.length} points chargés.`);
+        const rows = await fetchAtelierData();
+        drawChart(rows);
       } catch (err) {
-        showStatus(`Erreur : ${err.message}`);
+        document.getElementById('status').textContent = `Erreur : ${err.message}`;
         console.error(err);
       }
     }
@@ -47,44 +59,66 @@
         throw new Error(`Erreur HTTP ${res.status}`);
       }
 
-      const json = await res.json();
-
-      // Convertir les données pour Google Charts
-      const rows = json.map(point => {
-        const date = new Date(point.datetime);
-        const windspeed = Number(point.windspeed);
-        return [date, windspeed];
-      });
-
-      return rows;
+      return await res.json();
     }
 
-    function drawChart(rows) {
-      const data = new google.visualization.DataTable();
-      data.addColumn('datetime', 'Date/Heure');
-      data.addColumn('number', 'Vitesse du vent (km/h)');
-      data.addRows(rows);
-
-      const options = {
-        title: 'Vitesse du vent à Marseille (prochains jours)',
-        legend: { position: 'bottom' },
-        hAxis: {
-          title: 'Date/Heure',
-          format: 'dd/MM HH:mm'
-        },
-        vAxis: {
-          title: 'Vitesse (km/h)'
-        },
-        chartArea: { width: '85%', height: '70%' },
-        explorer: { actions: ['dragToZoom', 'rightClickToReset'] }
+    function drawChart(json) {
+      // Compter les occurrences par plage de vitesse
+      const ranges = {
+        "0-10 km/h": 0,
+        "10-20 km/h": 0,
+        "20-30 km/h": 0,
+        ">30 km/h": 0
       };
 
-      const chart = new google.visualization.AreaChart(document.getElementById('chart'));
-      chart.draw(data, options);
-    }
+      json.forEach(point => {
+        const speed = point.windspeed;
+        if (speed < 10) ranges["0-10 km/h"]++;
+        else if (speed < 20) ranges["10-20 km/h"]++;
+        else if (speed < 30) ranges["20-30 km/h"]++;
+        else ranges[">30 km/h"]++;
+      });
 
-    function showStatus(msg) {
-      document.getElementById('status').textContent = msg;
+      // Préparer les données pour Google Charts
+      const data = new google.visualization.DataTable();
+      data.addColumn('string', 'Plage de vitesse');
+      data.addColumn('number', 'Nombre d\'heures');
+
+      // Ajouter une ligne par plage de vitesse
+      data.addRows([
+        ["0-10 km/h", ranges["0-10 km/h"]],
+        ["10-20 km/h", ranges["10-20 km/h"]],
+        ["20-30 km/h", ranges["20-30 km/h"]],
+        [">30 km/h", ranges[">30 km/h"]]
+      ]);
+
+      // Options du graphique
+      const options = {
+        title: 'Répartition des vitesses de vent (prochains jours)',
+        pieHole: 0.4,  // Pour un "donut chart" (optionnel)
+        pieSliceText: 'value',  // Afficher les valeurs sur les parts
+        legend: { position: 'labeled' },
+        chartArea: { width: '90%', height: '80%' },
+        slices: {
+          0: { color: '#4285F4' },
+          1: { color: '#34A853' },
+          2: { color: '#FBBC05' },
+          3: { color: '#EA4335' }
+        }
+      };
+
+      // Dessiner le PieChart
+      const chart = new google.visualization.PieChart(document.getElementById('chart'));
+      chart.draw(data, options);
+
+      // Mettre à jour le statut
+      const total = json.length;
+      document.getElementById('status').innerHTML =
+        `Données chargées : ${total} heures analysées<br>
+         <strong>0-10 km/h</strong> : ${ranges["0-10 km/h"]}h (${Math.round(ranges["0-10 km/h"] / total * 100)}%) |
+         <strong>10-20 km/h</strong> : ${ranges["10-20 km/h"]}h (${Math.round(ranges["10-20 km/h"] / total * 100)}%) |
+         <strong>20-30 km/h</strong> : ${ranges["20-30 km/h"]}h (${Math.round(ranges["20-30 km/h"] / total * 100)}%) |
+         <strong>>30 km/h</strong> : ${ranges[">30 km/h"]}h (${Math.round(ranges[">30 km/h"] / total * 100)}%)`;
     }
   </script>
 </body>
