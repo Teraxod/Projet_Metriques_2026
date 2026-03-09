@@ -15,7 +15,6 @@ def contact():
 
 @app.get("/paris")
 def api_paris():
-    
     url = "https://api.open-meteo.com/v1/forecast?latitude=48.8566&longitude=2.3522&hourly=temperature_2m"
     response = requests.get(url)
     data = response.json()
@@ -32,15 +31,14 @@ def api_paris():
     return jsonify(result)
 
 @app.route("/rapport")
-def mongraphique():
+def rapport():  # Nom de fonction unique
     return render_template("graphique.html")
 
-@app.route("/historigramme")
-def mongraphique():
-    return render_template("historigramme")
-
+@app.route("/histogramme")  # Correction du nom de la route
+def histogramme():  # Nom de fonction unique
+    return render_template("histogramme.html")  # Correction du nom du template
 
 # Ne rien mettre après ce commentaire
-    
+
 if __name__ == "__main__":
-  app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
