@@ -34,9 +34,9 @@ def api_paris():
 def rapport():  # Nom de fonction unique
     return render_template("graphique.html")
 
-@app.route("/histogramme")  # Correction du nom de la route
+@app.route("/historigramme")  # Correction du nom de la route
 def histogramme():  # Nom de fonction unique
-    return render_template("histogramme.html")  # Correction du nom du template
+    return render_template("historigramme.html")  # Correction du nom du template
 
 # Ne rien mettre après ce commentaire
 
