@@ -38,6 +38,23 @@ def rapport():  # Nom de fonction unique
 def histogramme():  # Nom de fonction unique
     return render_template("historigramme.html")  # Correction du nom du template
 
+@app.get("/atelier")
+def api_atelier():
+    url = "https://api.open-meteo.com/v1/forecast?latitude=43.2965&longitude=5.3698&hourly=windspeed_10m"
+    response = requests.get(url)
+    data = response.json()
+
+    times = data.get("hourly", {}).get("time", [])
+    windspeeds = data.get("hourly", {}).get("windspeed_10m", [])
+
+    n = min(len(times), len(windspeeds))
+    result = [
+        {"datetime": times[i], "windspeed": windspeeds[i]}
+        for i in range(n)
+    ]
+
+    return jsonify(result)
+
 # Ne rien mettre après ce commentaire
 
 if __name__ == "__main__":
